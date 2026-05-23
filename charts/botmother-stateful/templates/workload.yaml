@@ -1,0 +1,95 @@
+{{- $fullname := include "botmother-stateful.fullname" . -}}
+{{- $isStatefulSet := eq (default "Deployment" .Values.workloadType) "StatefulSet" -}}
+apiVersion: apps/v1
+kind: {{ .Values.workloadType | default "Deployment" }}
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "botmother-stateful.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- if $isStatefulSet }}
+  serviceName: {{ $fullname }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "botmother-stateful.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "botmother-stateful.labels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "botmother-stateful.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- range $name, $sec := .Values.secrets }}
+            - secretRef:
+                name: {{ $fullname }}-{{ $name }}
+            {{- end }}
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            exec:
+              command:
+                {{- toYaml .Values.probes.readiness.exec.command | nindent 16 }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+          {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            exec:
+              command:
+                {{- toYaml .Values.probes.liveness.exec.command | nindent 16 }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if .Values.storage.enabled }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.storage.mountPath }}
+          {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  {{- if and $isStatefulSet .Values.storage.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          {{- toYaml .Values.storage.accessModes | nindent 10 }}
+        storageClassName: {{ .Values.storage.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+  {{- end }}
+  {{- if and (not $isStatefulSet) .Values.storage.enabled }}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ $fullname }}-data
+  {{- end }}

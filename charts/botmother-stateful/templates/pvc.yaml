@@ -1,0 +1,16 @@
+{{- if and .Values.storage.enabled (ne (default "Deployment" .Values.workloadType) "StatefulSet") }}
+{{- $fullname := include "botmother-stateful.fullname" . -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}-data
+  labels:
+    {{- include "botmother-stateful.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.storage.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.storage.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+{{- end }}

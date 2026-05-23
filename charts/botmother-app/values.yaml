@@ -1,0 +1,134 @@
+replicaCount: 1
+
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+  rules: []
+
+podAnnotations: {}
+
+podLabels: {}
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+command: []
+args: []
+
+initContainers: []
+
+env: []
+
+envFrom: []
+
+configMaps: {}
+
+secrets: {}
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: ""
+  nodePort: ""
+
+httpRoute:
+  enabled: false
+  parentRefs:
+    - name: main-gateway
+      namespace: default
+  hostnames: []
+  rules: []
+
+probes:
+  startup:
+    enabled: true
+    type: tcpSocket
+    httpGet:
+      path: /health
+      port: ""
+    tcpSocket:
+      port: ""
+    exec:
+      command: []
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 12
+  readiness:
+    enabled: true
+    type: tcpSocket
+    httpGet:
+      path: /health
+      port: ""
+    tcpSocket:
+      port: ""
+    exec:
+      command: []
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+  liveness:
+    enabled: true
+    type: tcpSocket
+    httpGet:
+      path: /health
+      port: ""
+    tcpSocket:
+      port: ""
+    exec:
+      command: []
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+volumes: []
+
+volumeMounts: []
+
+persistentVolumeClaims: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+dnsConfig: {}
+
+terminationGracePeriodSeconds: 30
+
+prometheus:
+  scrape: false
+  port: ""
+
+workloadType: Deployment
+# DaemonSet also supported

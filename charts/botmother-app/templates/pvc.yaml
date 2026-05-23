@@ -1,0 +1,16 @@
+{{- range .Values.persistentVolumeClaims }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "botmother-app.labels" $ | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml (.accessModes | default (list "ReadWriteMany")) | nindent 4 }}
+  storageClassName: {{ .storageClassName | default "longhorn" }}
+  resources:
+    requests:
+      storage: {{ .storage | default "5Gi" }}
+{{- end }}

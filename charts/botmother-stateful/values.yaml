@@ -1,0 +1,58 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: ""
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+workloadType: Deployment
+# StatefulSet also supported
+
+replicaCount: 1
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 27017
+  clusterIP: ""
+
+env: []
+
+envFrom: []
+
+secrets: {}
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+storage:
+  enabled: true
+  storageClassName: longhorn
+  accessModes:
+    - ReadWriteOnce
+  size: 5Gi
+  mountPath: /data
+
+probes:
+  readiness:
+    enabled: false
+    exec:
+      command: []
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  liveness:
+    enabled: false
+    exec:
+      command: []
+    initialDelaySeconds: 30
+    periodSeconds: 30
+
+affinity: {}
+nodeSelector: {}
+tolerations: []

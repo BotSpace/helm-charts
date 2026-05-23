@@ -1,0 +1,177 @@
+{{- $fullname := include "botmother-app.fullname" . -}}
+{{- $port := include "botmother-app.targetPort" . -}}
+apiVersion: apps/v1
+kind: {{ .Values.workloadType | default "Deployment" }}
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "botmother-app.labels" . | nindent 4 }}
+spec:
+  {{- if eq (default "Deployment" .Values.workloadType) "Deployment" }}
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.strategy }}
+  strategy:
+    type: {{ .Values.strategy.type | default "RollingUpdate" }}
+    {{- if and (eq (.Values.strategy.type | default "RollingUpdate") "RollingUpdate") .Values.strategy.rollingUpdate }}
+    rollingUpdate:
+      maxSurge: {{ .Values.strategy.rollingUpdate.maxSurge | default 1 }}
+      maxUnavailable: {{ .Values.strategy.rollingUpdate.maxUnavailable | default 0 }}
+    {{- end }}
+  {{- end }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "botmother-app.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- if .Values.prometheus.scrape }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.prometheus.port | default $port | quote }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "botmother-app.labels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | default 30 }}
+      {{- with .Values.initContainers }}
+      initContainers:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ include "botmother-app.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ $port }}
+              protocol: TCP
+          env:
+            {{- with .Values.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          envFrom:
+            {{- range $name, $cm := .Values.configMaps }}
+            - configMapRef:
+                name: {{ $fullname }}-{{ $name }}
+            {{- end }}
+            {{- range $name, $sec := .Values.secrets }}
+            {{- if $sec.envFrom }}
+            - secretRef:
+                name: {{ $fullname }}-{{ $name }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.probes.startup.enabled }}
+          startupProbe:
+            {{- if eq .Values.probes.startup.type "httpGet" }}
+            httpGet:
+              path: {{ .Values.probes.startup.httpGet.path }}
+              port: {{ .Values.probes.startup.httpGet.port | default ($port | int) }}
+              {{- if .Values.probes.startup.httpGet.host }}
+              host: {{ .Values.probes.startup.httpGet.host }}
+              {{- end }}
+            {{- else if eq .Values.probes.startup.type "tcpSocket" }}
+            tcpSocket:
+              port: {{ .Values.probes.startup.tcpSocket.port | default ($port | int) }}
+            {{- else if eq .Values.probes.startup.type "exec" }}
+            exec:
+              command:
+                {{- toYaml .Values.probes.startup.exec.command | nindent 16 }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.probes.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.startup.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.startup.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.startup.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            {{- if eq .Values.probes.readiness.type "httpGet" }}
+            httpGet:
+              path: {{ .Values.probes.readiness.httpGet.path }}
+              port: {{ .Values.probes.readiness.httpGet.port | default ($port | int) }}
+              {{- if .Values.probes.readiness.httpGet.host }}
+              host: {{ .Values.probes.readiness.httpGet.host }}
+              {{- end }}
+            {{- else if eq .Values.probes.readiness.type "tcpSocket" }}
+            tcpSocket:
+              port: {{ .Values.probes.readiness.tcpSocket.port | default ($port | int) }}
+            {{- else if eq .Values.probes.readiness.type "exec" }}
+            exec:
+              command:
+                {{- toYaml .Values.probes.readiness.exec.command | nindent 16 }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            {{- if eq .Values.probes.liveness.type "httpGet" }}
+            httpGet:
+              path: {{ .Values.probes.liveness.httpGet.path }}
+              port: {{ .Values.probes.liveness.httpGet.port | default ($port | int) }}
+              {{- if .Values.probes.liveness.httpGet.host }}
+              host: {{ .Values.probes.liveness.httpGet.host }}
+              {{- end }}
+            {{- else if eq .Values.probes.liveness.type "tcpSocket" }}
+            tcpSocket:
+              port: {{ .Values.probes.liveness.tcpSocket.port | default ($port | int) }}
+            {{- else if eq .Values.probes.liveness.type "exec" }}
+            exec:
+              command:
+                {{- toYaml .Values.probes.liveness.exec.command | nindent 16 }}
+            {{- end }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.dnsConfig }}
+      dnsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

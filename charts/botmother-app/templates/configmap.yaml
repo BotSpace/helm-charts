@@ -1,0 +1,14 @@
+{{- $fullname := include "botmother-app.fullname" . -}}
+{{- range $name, $data := .Values.configMaps }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullname }}-{{ $name }}
+  labels:
+    {{- include "botmother-app.labels" $ | nindent 4 }}
+data:
+  {{- range $key, $value := $data }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
