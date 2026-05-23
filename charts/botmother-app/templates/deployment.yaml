@@ -90,6 +90,10 @@ spec:
               {{- if .Values.probes.startup.httpGet.host }}
               host: {{ .Values.probes.startup.httpGet.host }}
               {{- end }}
+              {{- with .Values.probes.startup.httpGet.httpHeaders }}
+              httpHeaders:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
             {{- else if eq .Values.probes.startup.type "tcpSocket" }}
             tcpSocket:
               port: {{ .Values.probes.startup.tcpSocket.port | default ($port | int) }}
@@ -112,6 +116,10 @@ spec:
               {{- if .Values.probes.readiness.httpGet.host }}
               host: {{ .Values.probes.readiness.httpGet.host }}
               {{- end }}
+              {{- with .Values.probes.readiness.httpGet.httpHeaders }}
+              httpHeaders:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
             {{- else if eq .Values.probes.readiness.type "tcpSocket" }}
             tcpSocket:
               port: {{ .Values.probes.readiness.tcpSocket.port | default ($port | int) }}
@@ -133,6 +141,10 @@ spec:
               port: {{ .Values.probes.liveness.httpGet.port | default ($port | int) }}
               {{- if .Values.probes.liveness.httpGet.host }}
               host: {{ .Values.probes.liveness.httpGet.host }}
+              {{- end }}
+              {{- with .Values.probes.liveness.httpGet.httpHeaders }}
+              httpHeaders:
+                {{- toYaml . | nindent 16 }}
               {{- end }}
             {{- else if eq .Values.probes.liveness.type "tcpSocket" }}
             tcpSocket:
