@@ -126,6 +126,18 @@ dnsConfig: {}
 
 terminationGracePeriodSeconds: 30
 
+# Graceful shutdown. Even with maxUnavailable:0/maxSurge:1, a terminating pod is
+# removed from the gateway upstream asynchronously — for a brief window the
+# gateway may still route to it, causing 502s during a rolling deploy. A preStop
+# sleep keeps the old pod serving while it is de-registered, so traffic drains
+# cleanly. Set to 0 to disable (e.g. images without /bin/sh).
+# Must stay below terminationGracePeriodSeconds.
+preStopSleepSeconds: 10
+
+# Full container lifecycle override; when set it takes precedence over
+# preStopSleepSeconds (e.g. for a custom preStop or postStart hook).
+lifecycle: {}
+
 prometheus:
   scrape: false
   port: ""
